@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6
+    container_name: inventory_mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: inventory_shop
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - inventory_network
+
+  app:
+    build: .
+    container_name: inventory_app
+    ports:
+      - "3000:3000"
+    environment:
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/inventory_shop?authSource=admin
+      JWT_SECRET: your-jwt-secret-key
+      NEXTAUTH_SECRET: your-nextauth-secret
+      NODE_ENV: production
+    depends_on:
+      - mongodb
+    networks:
+      - inventory_network
+
+volumes:
+  mongodb_data:
+
+networks:
+  inventory_network:
+    driver: bridge
