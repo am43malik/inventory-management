@@ -3,6 +3,7 @@ import connectDB from '@/lib/db';
 import Sale from '@/models/Sale';
 import Product from '@/models/Product';
 import InventoryLog from '@/models/InventoryLog';
+import User from '@/models/User';
 import { validateRequest } from '@/lib/auth/jwt';
 import { Types } from 'mongoose';
 import { z } from 'zod';

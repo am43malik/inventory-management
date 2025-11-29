@@ -107,7 +107,7 @@
 //         notes: `${notes} [Date: ${date}]`,
 //       });
 
-//       setMessage(`✓ Sale recorded successfully! Total: $${response.data.data.total.toFixed(2)}`);
+//       setMessage(`✓ Sale recorded successfully! Total: ₹${response.data.data.total.toFixed(2)}`);
 //       setItems([]);
 //       setDiscount('0');
 //       setPaymentMethod('cash');
@@ -445,7 +445,7 @@ export function AddDailySaleModal({ date, onSuccess }: AddDailySaleProps) {
         notes: `${notes} [Date: ${date}]`,
       });
 
-      setMessage(`✓ Sale recorded successfully! Total: $${response.data.data.total.toFixed(2)}`);
+      setMessage(`✓ Sale recorded successfully! Total: ₹${response.data.data.total.toFixed(2)}`);
       setItems([]);
       setDiscount('0');
       setPaymentMethod('cash');
@@ -632,11 +632,11 @@ export function AddDailySaleModal({ date, onSuccess }: AddDailySaleProps) {
                             <span className="font-semibold text-slate-900 dark:text-white">{item.quantity}</span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <span className="text-slate-700 dark:text-slate-300">${item.salePrice.toFixed(2)}</span>
+                            <span className="text-slate-700 dark:text-slate-300">₹${item.salePrice.toFixed(2)}</span>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <span className="font-bold text-slate-900 dark:text-white">
-                              ${(item.quantity * item.salePrice).toFixed(2)}
+                              ₹${(item.quantity * item.salePrice).toFixed(2)}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
@@ -683,7 +683,7 @@ export function AddDailySaleModal({ date, onSuccess }: AddDailySaleProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Discount ($)</label>
+                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Discount (₹)</label>
                       <Input
                         type="number"
                         value={discount}
@@ -719,21 +719,21 @@ export function AddDailySaleModal({ date, onSuccess }: AddDailySaleProps) {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2">
                     <span className="text-slate-600 dark:text-slate-400">Subtotal:</span>
-                    <span className="font-semibold text-slate-900 dark:text-white">${subtotal.toFixed(2)}</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">₹${subtotal.toFixed(2)}</span>
                   </div>
                   
                   {discountAmount > 0 && (
                     <div className="flex justify-between items-center py-2 border-t border-slate-200 dark:border-slate-600">
                       <span className="text-red-600 dark:text-red-400">Discount:</span>
-                      <span className="font-semibold text-red-600 dark:text-red-400">-${discountAmount.toFixed(2)}</span>
+                      <span className="font-semibold text-red-600 dark:text-red-400">-₹${discountAmount.toFixed(2)}</span>
                     </div>
                   )}
 
                   <div className="flex justify-between items-center py-3 border-t border-slate-300 dark:border-slate-600 pt-4">
                     <span className="text-lg font-bold text-slate-900 dark:text-white">Total Amount:</span>
-                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                      ${total.toFixed(2)}
-                    </span>
+                      <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                        $${total.toFixed(2)}
+                      </span>
                   </div>
                 </div>
 
@@ -751,7 +751,7 @@ export function AddDailySaleModal({ date, onSuccess }: AddDailySaleProps) {
                     ) : (
                       <>
                         <DollarSign className="w-4 h-4 mr-2" />
-                        Record Sale - ${total.toFixed(2)}
+                        Record Sale - $${total.toFixed(2)}
                       </>
                     )}
                   </Button>

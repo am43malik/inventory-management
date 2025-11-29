@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api-client';
-import { Trash2, Plus, ShoppingCart, Search, Loader2, Receipt, DollarSign, Zap, Package, Calculator, CreditCard, Cash, FileText, TrendingUp } from 'lucide-react';
+import { Trash2, Plus, ShoppingCart, Search, Loader2, Receipt, DollarSign, Zap, Package, Calculator, CreditCard, DollarSign as Money, FileText, TrendingUp } from 'lucide-react';
 
 interface CartItem {
   productId: string;
@@ -290,7 +290,7 @@ export default function POSPage() {
                               </Badge>
                             </div>
                             <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-2">
-                              ${item.salePrice.toFixed(2)}
+                              ₹${item.salePrice.toFixed(2)}
                             </p>
                           </div>
                           <button
@@ -339,7 +339,7 @@ export default function POSPage() {
                 <div className="space-y-3 pb-4 border-b border-slate-200 dark:border-slate-700">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
-                    <span className="font-semibold text-slate-900 dark:text-white">${subtotal.toFixed(2)}</span>
+                    <span className="font-semibold text-slate-900 dark:text-white">₹${subtotal.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -406,7 +406,7 @@ export default function POSPage() {
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Payment Method</label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { value: 'cash', icon: Cash, label: 'Cash', color: 'green' },
+                      { value: 'cash', icon: DollarSign, label: 'Cash', color: 'green' },
                       { value: 'card', icon: CreditCard, label: 'Card', color: 'blue' },
                       { value: 'cheque', icon: FileText, label: 'Cheque', color: 'yellow' },
                       { value: 'other', icon: DollarSign, label: 'Other', color: 'gray' },
@@ -451,7 +451,7 @@ export default function POSPage() {
                   ) : (
                     <>
                       <Receipt className="w-5 h-5 mr-2" />
-                      Complete Sale - ${total.toFixed(2)}
+                      Complete Sale - ₹${total.toFixed(2)}
                     </>
                   )}
                 </Button>
@@ -489,7 +489,7 @@ function ProductCard({
             </Badge>
           </div>
           <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-3">
-            ${product.salePrice.toFixed(2)}
+            $${product.salePrice.toFixed(2)}
           </p>
           {product.currentStock && (
             <p className={`text-xs mt-1 ${

@@ -448,6 +448,16 @@ export default function ProductsPage() {
     unit: 'pcs',
     minStock: '10',
   });
+  
+  // Stock addition state
+  const [showStockForm, setShowStockForm] = useState(false);
+  const [stockData, setStockData] = useState({
+    quantity: '',
+    batchNumber: '',
+    expiryDate: '',
+  });
+  const [stockItems, setStockItems] = useState<any[]>([]);
+  const [formStep, setFormStep] = useState(1); // 1: Basic Info, 2: Pricing, 3: Stock
 
   useEffect(() => {
     fetchData();
@@ -476,9 +486,28 @@ export default function ProductsPage() {
         await api.updateProduct(editingId, formData);
         setMessage({ type: 'success', text: 'Product updated successfully' });
       } else {
-        await api.createProduct(formData);
+        const response = await api.createProduct(formData);
         setMessage({ type: 'success', text: 'Product created successfully' });
+        
+        // Add stock if user provided quantity
+        if (stockItems.length > 0 && response.data.data._id) {
+          for (const item of stockItems) {
+            await api.stockIn({
+              productId: response.data.data._id,
+              quantity: parseInt(item.quantity),
+              costPrice: parseFloat(formData.costPrice),
+              batchNumber: item.batchNumber || `BATCH-${Date.now()}`,
+              expiryDate: item.expiryDate || undefined,
+            });
+          }
+          setMessage({ 
+            type: 'success', 
+            text: `Product created with ${stockItems.length} stock batch(es)!` 
+          });
+        }
       }
+      
+      // Reset form
       setFormData({
         name: '',
         sku: '',
@@ -489,6 +518,10 @@ export default function ProductsPage() {
         unit: 'pcs',
         minStock: '10',
       });
+      setStockData({ quantity: '', batchNumber: '', expiryDate: '' });
+      setStockItems([]);
+      setShowStockForm(false);
+      setFormStep(1);
       setShowForm(false);
       setEditingId(null);
       fetchData();
@@ -497,6 +530,26 @@ export default function ProductsPage() {
     } finally {
       setFormLoading(false);
     }
+  };
+
+  const handleAddStock = () => {
+    if (!stockData.quantity) {
+      setMessage({ type: 'error', text: 'Please enter quantity' });
+      return;
+    }
+    
+    setStockItems([...stockItems, {
+      quantity: stockData.quantity,
+      batchNumber: stockData.batchNumber || `BATCH-${stockItems.length + 1}`,
+      expiryDate: stockData.expiryDate,
+    }]);
+    
+    setStockData({ quantity: '', batchNumber: '', expiryDate: '' });
+    setShowStockForm(false);
+  };
+
+  const handleRemoveStock = (index: number) => {
+    setStockItems(stockItems.filter((_, i) => i !== index));
   };
 
   const handleEdit = (product: Product) => {
@@ -536,6 +589,10 @@ export default function ProductsPage() {
       unit: 'pcs',
       minStock: '10',
     });
+    setStockData({ quantity: '', batchNumber: '', expiryDate: '' });
+    setStockItems([]);
+    setShowStockForm(false);
+    setFormStep(1);
     setShowForm(false);
     setEditingId(null);
   };
@@ -639,12 +696,12 @@ export default function ProductsPage() {
             </Alert>
           )}
 
-          {/* Form Card */}
+          {/* Enhanced Form Card with Multi-Step & Stock Management */}
           {showForm && (
             <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-slate-200 dark:border-slate-700">
                 <CardTitle className="text-lg font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-blue-600" />
+                  <Package className="w-5 h-5 text-blue-600" />
                   {editingId ? 'Edit Product' : 'Create New Product'}
                 </CardTitle>
                 <button 
@@ -654,109 +711,304 @@ export default function ProductsPage() {
                   <X className="w-5 h-5" />
                 </button>
               </CardHeader>
+              
+              {/* Step Indicator */}
+              {!editingId && (
+                <div className="px-6 pt-6 pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    {[1, 2, 3].map((step) => (
+                      <div key={step} className="flex items-center flex-1">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
+                          step === formStep 
+                            ? 'bg-blue-600 text-white shadow-lg' 
+                            : step < formStep
+                            ? 'bg-green-600 text-white'
+                            : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-400'
+                        }`}>
+                          {step < formStep ? '✓' : step}
+                        </div>
+                        {step < 3 && (
+                          <div className={`flex-1 h-1 mx-2 rounded transition-all ${
+                            step < formStep ? 'bg-green-600' : 'bg-slate-200 dark:bg-slate-700'
+                          }`}></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
+                    <span>Basic Info</span>
+                    <span>Pricing</span>
+                    <span>Stock</span>
+                  </div>
+                </div>
+              )}
+              
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product Name</label>
-                      <Input
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Enter product name"
-                        required
-                        className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">SKU Code</label>
-                      <Input
-                        value={formData.sku}
-                        onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                        placeholder="SKU-001"
-                        required
-                        className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Category</label>
-                        <a href="/categories" target="_blank" className="text-blue-600 hover:text-blue-700 text-xs font-semibold flex items-center gap-1">
-                          <Plus className="w-3 h-3" /> Manage Categories
-                        </a>
+                  
+                  {/* Step 1: Basic Information */}
+                  {(editingId || formStep === 1) && (
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
+                        <Package className="w-4 h-4 text-blue-600" />
+                        Product Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Product Name *</label>
+                          <Input
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="Enter product name"
+                            required
+                            className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">SKU Code *</label>
+                          <Input
+                            value={formData.sku}
+                            onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                            placeholder="SKU-001"
+                            required
+                            className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Category *</label>
+                            <a href="/categories" target="_blank" className="text-blue-600 hover:text-blue-700 text-xs font-semibold flex items-center gap-1">
+                              <Plus className="w-3 h-3" /> New
+                            </a>
+                          </div>
+                          <select
+                            value={formData.category}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            className="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                            required
+                          >
+                            <option value="">Select a category</option>
+                            {categories.map((c) => (
+                              <option key={c._id} value={c._id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-3">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Unit</label>
+                          <Input
+                            value={formData.unit}
+                            onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                            placeholder="pcs, kg, etc."
+                            className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                          />
+                        </div>
                       </div>
-                      <select
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
-                        required
+                    </div>
+                  )}
+                  
+                  {/* Step 2: Pricing (only for new products) */}
+                  {!editingId && formStep >= 2 && (
+                    <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
+                        <DollarSign className="w-4 h-4 text-green-600" />
+                        Pricing Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cost Price (₹) *</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={formData.costPrice}
+                            onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                            placeholder="0.00"
+                            required
+                            className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sale Price (₹) *</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={formData.salePrice}
+                            onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
+                            placeholder="0.00"
+                            required
+                            className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Minimum Stock Level</label>
+                          <Input
+                            type="number"
+                            value={formData.minStock}
+                            onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
+                            placeholder="10"
+                            className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
+                          />
+                        </div>
+                        {formData.costPrice && formData.salePrice && (
+                          <div className="space-y-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                            <p className="text-xs font-semibold text-green-700 dark:text-green-300">Profit Margin</p>
+                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                              {(((parseFloat(formData.salePrice) - parseFloat(formData.costPrice)) / parseFloat(formData.costPrice)) * 100).toFixed(1)}%
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Step 3: Stock Management (only for new products) */}
+                  {!editingId && formStep === 3 && (
+                    <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                          <Package className="w-4 h-4 text-orange-600" />
+                          Initial Stock
+                        </h3>
+                        {!showStockForm && (
+                          <Button
+                            type="button"
+                            onClick={() => setShowStockForm(true)}
+                            className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
+                          >
+                            <Plus className="w-4 h-4" /> Add Stock Batch
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {/* Stock Add Form */}
+                      {showStockForm && (
+                        <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-600 space-y-4">
+                          <h4 className="font-semibold text-slate-800 dark:text-white text-sm">Add Stock Batch</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Quantity *</label>
+                              <Input
+                                type="number"
+                                value={stockData.quantity}
+                                onChange={(e) => setStockData({ ...stockData, quantity: e.target.value })}
+                                placeholder="0"
+                                className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Batch Number</label>
+                              <Input
+                                value={stockData.batchNumber}
+                                onChange={(e) => setStockData({ ...stockData, batchNumber: e.target.value })}
+                                placeholder="Auto-generated"
+                                className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Expiry Date</label>
+                              <Input
+                                type="date"
+                                value={stockData.expiryDate}
+                                onChange={(e) => setStockData({ ...stockData, expiryDate: e.target.value })}
+                                className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              type="button"
+                              onClick={() => setShowStockForm(false)}
+                              className="bg-slate-300 hover:bg-slate-400 text-slate-800 px-4 py-2 rounded-lg text-sm font-semibold"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={handleAddStock}
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                            >
+                              Add Batch
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Stock Items List */}
+                      {stockItems.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-slate-800 dark:text-white text-sm">Added Batches</h4>
+                          {stockItems.map((item, idx) => (
+                            <div key={idx} className="bg-white dark:bg-slate-700 p-4 rounded-lg border border-slate-200 dark:border-slate-600 flex items-center justify-between">
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                  {item.quantity} {formData.unit} - Batch: {item.batchNumber}
+                                </p>
+                                {item.expiryDate && (
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Expires: {new Date(item.expiryDate).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                onClick={() => handleRemoveStock(idx)}
+                                className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                              Total Initial Stock: {stockItems.reduce((sum, item) => sum + parseInt(item.quantity || 0), 0)} {formData.unit}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Navigation Buttons */}
+                  <div className="flex gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
+                    {formStep > 1 && !editingId && (
+                      <Button 
+                        type="button"
+                        onClick={() => setFormStep(formStep - 1)}
+                        className="bg-slate-300 hover:bg-slate-400 text-slate-800 px-6 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all duration-200"
                       >
-                        <option value="">Select a category</option>
-                        {categories.map((c) => (
-                          <option key={c._id} value={c._id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Unit</label>
-                      <Input
-                        value={formData.unit}
-                        onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                        placeholder="pcs, kg, etc."
-                        className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cost Price</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.costPrice}
-                        onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
-                        placeholder="0.00"
-                        required
-                        className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sale Price</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={formData.salePrice}
-                        onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
-                        placeholder="0.00"
-                        required
-                        className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Minimum Stock</label>
-                      <Input
-                        type="number"
-                        value={formData.minStock}
-                        onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
-                        placeholder="10"
-                        className="bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all duration-200"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-3 pt-4">
-                    <Button 
-                      type="submit" 
-                      disabled={formLoading}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-2"
-                    >
-                      {formLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {editingId ? 'Update Product' : 'Create Product'}
-                    </Button>
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      onClick={resetForm}
-                      className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl px-6 py-2.5 transition-all duration-200"
-                    >
-                      Cancel
-                    </Button>
+                        ← Previous
+                      </Button>
+                    )}
+                    
+                    {formStep < 3 && !editingId && (
+                      <Button 
+                        type="button"
+                        onClick={() => {
+                          if (formStep === 1 && (!formData.name || !formData.sku || !formData.category)) {
+                            setMessage({ type: 'error', text: 'Please fill all required fields' });
+                            return;
+                          }
+                          if (formStep === 2 && (!formData.costPrice || !formData.salePrice)) {
+                            setMessage({ type: 'error', text: 'Please enter pricing information' });
+                            return;
+                          }
+                          setFormStep(formStep + 1);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all duration-200 ml-auto flex items-center gap-2"
+                      >
+                        Next → 
+                      </Button>
+                    )}
+                    
+                    {(editingId || formStep === 3) && (
+                      <Button 
+                        type="submit" 
+                        disabled={formLoading}
+                        className="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all duration-200 ml-auto flex items-center gap-2"
+                      >
+                        {formLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {editingId ? 'Update Product' : 'Create Product'}
+                      </Button>
+                    )}
                   </div>
                 </form>
               </CardContent>

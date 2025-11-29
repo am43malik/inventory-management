@@ -90,7 +90,7 @@
 //               <div className="flex items-start justify-between">
 //                 <div>
 //                   <p className="text-sm text-slate-500 dark:text-slate-400">Total Revenue</p>
-//                   <p className="text-3xl font-bold mt-2">${totalRevenue.toFixed(2)}</p>
+//                   <p className=\"text-3xl font-bold mt-2\">₹${totalRevenue.toFixed(2)}</p>
 //                 </div>
 //                 <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
 //                   <ShoppingCart className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -403,7 +403,7 @@ export default function SalesPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <StatCard 
               label="Total Revenue" 
-              value={`$${totalRevenue.toFixed(2)}`}
+              value={`₹${totalRevenue.toFixed(2)}`}
               icon={<DollarSign className="w-6 h-6" />}
               trend="up"
               color="blue"
@@ -417,7 +417,7 @@ export default function SalesPage() {
             />
             <StatCard 
               label="Avg. Transaction" 
-              value={`$${averageTransaction.toFixed(2)}`}
+              value={`₹${averageTransaction.toFixed(2)}`}
               icon={<TrendingUp className="w-6 h-6" />}
               trend="up"
               color="green"
@@ -581,7 +581,7 @@ export default function SalesPage() {
                           </p>
                           <p className="text-sm text-slate-500 mt-1 flex items-center gap-1 justify-end">
                             <ArrowUpRight className="w-3 h-3" />
-                            ${sale.subtotal.toFixed(2)} + tax
+                            $${sale.subtotal.toFixed(2)} + tax
                           </p>
                         </div>
                         <div className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
@@ -610,11 +610,11 @@ export default function SalesPage() {
                                     </span>
                                     <div className="flex items-center gap-4 mt-1 text-sm text-slate-600 dark:text-slate-400">
                                       <span>Qty: {item.quantity}</span>
-                                      <span>Price: ${item.salePrice?.toFixed(2) || '0.00'}</span>
+                                      <span>Price: ₹${item.salePrice?.toFixed(2) || '0.00'}</span>
                                     </div>
                                   </div>
                                   <span className="font-bold text-slate-900 dark:text-white">
-                                    ${item.subtotal.toFixed(2)}
+                                    ₹${item.subtotal.toFixed(2)}
                                   </span>
                                 </div>
                               ))}
@@ -627,24 +627,24 @@ export default function SalesPage() {
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between py-2">
                                 <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
-                                <span className="font-semibold text-slate-900 dark:text-white">${sale.subtotal.toFixed(2)}</span>
+                                <span className="font-semibold text-slate-900 dark:text-white">₹${sale.subtotal.toFixed(2)}</span>
                               </div>
                               {sale.taxAmount > 0 && (
                                 <div className="flex justify-between py-2">
                                   <span className="text-slate-600 dark:text-slate-400">Tax</span>
-                                  <span className="font-semibold text-slate-900 dark:text-white">${sale.taxAmount.toFixed(2)}</span>
+                                  <span className="font-semibold text-slate-900 dark:text-white">₹${sale.taxAmount.toFixed(2)}</span>
                                 </div>
                               )}
                               {sale.discount > 0 && (
                                 <div className="flex justify-between py-2">
                                   <span className="text-slate-600 dark:text-slate-400">Discount</span>
-                                  <span className="font-semibold text-red-600 dark:text-red-400">-${sale.discount.toFixed(2)}</span>
+                                  <span className="font-semibold text-red-600 dark:text-red-400">-₹${sale.discount.toFixed(2)}</span>
                                 </div>
                               )}
                               <div className="flex justify-between font-bold text-lg py-3 px-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                                 <span className="text-slate-900 dark:text-white">Total Amount</span>
                                 <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                                  ${sale.total.toFixed(2)}
+                                  ₹${sale.total.toFixed(2)}
                                 </span>
                               </div>
                             </div>

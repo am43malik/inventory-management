@@ -26,6 +26,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [verified, setVerified] = useState(false);
 
   const refresh = async () => {
     try {
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
+      // Silently handle 401 errors - they're expected when not authenticated
       setUser(null);
       if (typeof window !== 'undefined') {
         localStorage.removeItem('user');
@@ -50,33 +52,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Auto-verify session on app startup
+  // Auto-verify session on app startup (only once)
   useEffect(() => {
     const initAuth = async () => {
+      if (verified) return; // Prevent duplicate verification
+      
       try {
         // First check localStorage for cached user
         if (typeof window !== 'undefined') {
           const cachedUser = localStorage.getItem('user');
           if (cachedUser) {
-            setUser(JSON.parse(cachedUser));
+            try {
+              setUser(JSON.parse(cachedUser));
+            } catch (e) {
+              localStorage.removeItem('user');
+            }
           }
         }
 
         // Then verify with server
         await refresh();
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        setUser(null);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('user');
-        }
       } finally {
         setIsLoading(false);
+        setVerified(true);
       }
     };
 
     initAuth();
-  }, []);
+  }, [verified]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);

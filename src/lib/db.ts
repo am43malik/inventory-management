@@ -1,5 +1,12 @@
 import mongoose from 'mongoose';
 
+// Import all models to ensure they're registered with Mongoose
+import Product from '@/models/Product';
+import User from '@/models/User';
+import Sale from '@/models/Sale';
+import InventoryLog from '@/models/InventoryLog';
+import Category from '@/models/Category';
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {

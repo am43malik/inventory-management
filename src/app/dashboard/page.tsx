@@ -101,14 +101,14 @@ export default function DashboardPage() {
             <StatCard
               icon={<DollarSign className="w-6 h-6" />}
               label="Today's Revenue"
-              value={`$${dailyReport?.totalRevenue?.toFixed(2) || '0.00'}`}
+              value={`₹${dailyReport?.totalRevenue?.toFixed(2) || '0.00'}`}
               trend={12}
               color="bg-gradient-to-br from-purple-500 to-purple-600"
             />
             <StatCard
               icon={<TrendingUp className="w-6 h-6" />}
               label="Today's Profit"
-              value={`$${dailyReport?.totalProfit?.toFixed(2) || '0.00'}`}
+              value={`₹${dailyReport?.totalProfit?.toFixed(2) || '0.00'}`}
               trend={8}
               color="bg-gradient-to-br from-orange-500 to-orange-600"
             />
@@ -256,12 +256,12 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <SummaryItem 
                   label="Total Revenue" 
-                  value={`$${periodReport?.totalRevenue?.toFixed(2)}`} 
-                  trend={15.2}
+                  value={`₹${periodReport?.totalRevenue?.toFixed(2)}`} 
+                  trend={12}
                 />
-                <SummaryItem 
-                  label="Total Cost" 
-                  value={`$${periodReport?.totalCost?.toFixed(2)}`} 
+                <SummaryItem
+                  label="Total Cost"
+                  value={`₹${periodReport?.totalCost?.toFixed(2)}`}
                   trend={-8.7}
                 />
                 <SummaryItem 
@@ -291,7 +291,7 @@ export default function DashboardPage() {
                 />
                 <SummaryItem 
                   label="Total Discount" 
-                  value={`$${periodReport?.totalDiscount?.toFixed(2)}`} 
+                  value={`₹${periodReport?.totalDiscount?.toFixed(2)}`} 
                   trend={-3.2}
                 />
               </div>

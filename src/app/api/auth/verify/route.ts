@@ -7,8 +7,8 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { success: false, error: 'Unauthorized' },
+        { status: 200 }
       );
     }
 
@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Verify error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { success: false, error: 'Internal server error' },
+      { status: 200 }
     );
   }
 }

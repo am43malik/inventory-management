@@ -1,4 +1,4 @@
-// 'use client';
+﻿// 'use client';
 
 // import { ProtectedLayout } from '@/components/ProtectedLayout';
 // import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -278,7 +278,7 @@
 //                           </div>
 //                           <div className="flex justify-between text-sm">
 //                             <span className="text-slate-600 dark:text-slate-400">Profit:</span>
-//                             <span className="font-semibold text-green-600 dark:text-green-400">${product.profit.toFixed(2)}</span>
+//                             <span className="font-semibold text-green-600 dark:text-green-400">${product.profit.toFixed(2)}</p>
 //                           </div>
 //                         </div>
 //                       ))
@@ -534,21 +534,21 @@ export default function ReportsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatBox 
                   label="Total Revenue" 
-                  value={`$${reportData.totalRevenue.toFixed(2)}`} 
+                  value={`?${reportData.totalRevenue.toFixed(2)}`} 
                   icon={<DollarSign className="w-6 h-6" />}
                   trend="up"
                   color="blue"
                 />
                 <StatBox 
                   label="Total Cost" 
-                  value={`$${reportData.totalCost.toFixed(2)}`} 
+                  value={`?${reportData.totalCost.toFixed(2)}`} 
                   icon={<Package className="w-6 h-6" />}
                   trend="neutral"
                   color="gray"
                 />
                 <StatBox 
                   label="Net Profit" 
-                  value={`$${reportData.totalProfit.toFixed(2)}`} 
+                  value={`?${reportData.totalProfit.toFixed(2)}`} 
                   icon={<TrendingUp className="w-6 h-6" />}
                   trend="up"
                   color="green"
@@ -657,15 +657,15 @@ export default function ReportsPage() {
                                 </Badge>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold text-lg text-slate-900 dark:text-white">${day.totalRevenue.toFixed(2)}</p>
+                                <p className="font-bold text-lg text-slate-900 dark:text-white">$${day.totalRevenue.toFixed(2)}</p>
                                 <p className="text-sm text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
                                   <ArrowUpRight className="w-3 h-3" />
-                                  +${day.totalProfit.toFixed(2)}
+                                  +$${day.totalProfit.toFixed(2)}
                                 </p>
                               </div>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div className="text-slate-600 dark:text-slate-400">Cost: ${day.totalCost?.toFixed(2) || '0.00'}</div>
+                              <div className="text-slate-600 dark:text-slate-400">Cost: ?${day.totalCost?.toFixed(2) || '0.00'}</div>
                               <div className="text-right text-slate-600 dark:text-slate-400">Margin: {day.profitMargin?.toFixed(1) || '0'}%</div>
                             </div>
                           </div>
@@ -713,14 +713,13 @@ export default function ReportsPage() {
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
                                 <p className="text-slate-600 dark:text-slate-400 text-xs">Revenue</p>
-                                <p className="font-semibold text-slate-900 dark:text-white">${product.revenue.toFixed(2)}</p>
+                                <p className="font-semibold text-slate-900 dark:text-white">?${product.revenue.toFixed(2)}</p>
                               </div>
                               <div>
                                 <p className="text-slate-600 dark:text-slate-400 text-xs">Profit</p>
                                 <p className="font-semibold text-green-600 dark:text-green-400 flex items-center gap-1">
                                   <ArrowUpRight className="w-3 h-3" />
-                                  ${product.profit.toFixed(2)}
-                                </p>
+                                  ₹${product.profit.toFixed(2)}</p>
                               </div>
                             </div>
                           </div>
@@ -760,7 +759,7 @@ export default function ReportsPage() {
                     />
                     <SummaryItem 
                       label="Avg. Transaction" 
-                      value={`$${(reportData.totalRevenue / Math.max(1, reportData.totalSales)).toFixed(2)}`} 
+                      value={`?${(reportData.totalRevenue / Math.max(1, reportData.totalSales)).toFixed(2)}`} 
                       icon={<Target className="w-4 h-4" />}
                     />
                   </div>
@@ -841,3 +840,6 @@ function SummaryItem({ label, value, icon }: { label: string; value: string | nu
     </div>
   );
 }
+
+
+

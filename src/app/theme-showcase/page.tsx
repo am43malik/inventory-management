@@ -177,7 +177,7 @@ export default function ThemeShowcase() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">$45,231</p>
+                <p className="text-3xl font-bold">₹45,231</p>
                 <p className="text-sm text-muted-foreground">Total revenue this month</p>
               </CardContent>
             </Card>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Product from '@/models/Product';
 import InventoryLog from '@/models/InventoryLog';
+import User from '@/models/User';
 import { validateRequest } from '@/lib/auth/jwt';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,7 +25,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const validatedData = adjustInventorySchema.parse(body);
+    
+    // Convert string numbers to actual numbers
+    const parsedBody = {
+      ...body,
+      quantity: typeof body.quantity === 'string' ? parseInt(body.quantity, 10) : body.quantity,
+      costPrice: typeof body.costPrice === 'string' ? parseFloat(body.costPrice) : body.costPrice,
+    };
+
+    const validatedData = adjustInventorySchema.parse(parsedBody);
 
     await connectDB();
 
