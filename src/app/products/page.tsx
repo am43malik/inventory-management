@@ -2,11 +2,7 @@
 
 import type React from "react"
 import { ProtectedLayout } from "@/components/ProtectedLayout"
-
 import { Badge } from "@/components/ui/Badge"
-
-
-
 import { useEffect, useState, useCallback, useRef } from "react"
 import { api } from "@/lib/api-client"
 import {
