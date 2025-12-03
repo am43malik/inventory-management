@@ -3,13 +3,16 @@
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/Select';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
 import { BarChart3, Package } from 'lucide-react';
+import { useState } from 'react';
 
 export default function ThemeShowcase() {
+  const [selectedCategory, setSelectedCategory] = useState('');
+  
   const sampleData = [
     { id: 1, name: 'Product A', category: 'Electronics', stock: 45 },
     { id: 2, name: 'Product B', category: 'Clothing', stock: 120 },
@@ -56,17 +59,18 @@ export default function ThemeShowcase() {
             <CardDescription>Input and select components</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Input label="Product Name" placeholder="Enter product name" />
-            <Select
-              label="Category"
-              options={[
-                { value: 'electronics', label: 'Electronics' },
-                { value: 'clothing', label: 'Clothing' },
-                { value: 'books', label: 'Books' },
-              ]}
-            />
-            <Input label="Stock Quantity" type="number" placeholder="0" />
-            <Input label="With Error" error="This field is required" />
+            <Input placeholder="Enter product name" />
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="electronics">Electronics</SelectItem>
+                <SelectItem value="clothing">Clothing</SelectItem>
+                <SelectItem value="books">Books</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input type="number" placeholder="Stock quantity" />
           </CardContent>
         </Card>
 
