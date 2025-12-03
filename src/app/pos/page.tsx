@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Alert, AlertDescription } from '@/components/ui/Alert';
-import { Badge } from '@/components/ui/Badge';
 import { api } from '@/lib/api-client';
 import {
   Plus,
@@ -25,8 +24,12 @@ interface Product {
   sku: string;
   salePrice: number;
   costPrice?: number;
+  // currentStock may be undefined if backend doesn't track stock for that product
   currentStock?: number;
   unit?: string;
+  // optional fallback shapes
+  stock?: number;
+  batches?: { quantity?: number }[];
 }
 
 interface CartItem {
@@ -38,7 +41,6 @@ interface CartItem {
   costPrice?: number;
 }
 
-/* Helper to format INR */
 const formatINR = (value: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(value);
 
@@ -50,7 +52,7 @@ export default function POSListPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [discount, setDiscount] = useState('0'); // discount amount in ₹
+  const [discount, setDiscount] = useState('0');
   const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -77,8 +79,29 @@ export default function POSListPage() {
     setLoading(true);
     try {
       const res = await api.getProducts({ limit: 1000 });
-      setAllProducts(res.data.data || []);
-      setDisplayProducts(res.data.data || []);
+      // === IMPORTANT FIX ===
+      // Do NOT coerce missing/undefined stock to 0 here.
+      // If backend provides numeric currentStock -> use it.
+      // Else try fallback: 'stock' numeric or sum(batches).
+      // Else leave currentStock as undefined (means: no stock tracking).
+      const prods: Product[] = (res.data.data || []).map((p: any) => {
+        const numericStock =
+          typeof p.currentStock === 'number'
+            ? p.currentStock
+            : typeof p.stock === 'number'
+            ? p.stock
+            : Array.isArray(p.batches)
+            ? p.batches.reduce((s: number, b: any) => s + (Number(b?.quantity) || 0), 0)
+            : undefined;
+
+        return {
+          ...p,
+          currentStock: numericStock, // can be undefined intentionally
+        };
+      });
+
+      setAllProducts(prods);
+      setDisplayProducts(prods);
     } catch (err) {
       console.error('failed to fetch products', err);
       setMessage({ type: 'error', text: 'Failed to load products' });
@@ -87,17 +110,50 @@ export default function POSListPage() {
     }
   }
 
+  /* adjustStockInMemory:
+     - only modify product.currentStock when it's a number (backend tracked product).
+     - if currentStock is undefined, we do NOT reserve or decrement in-memory.
+     Reason: products with undefined stock mean "stock not tracked" -> allow adding without blocking.
+  */
+  const adjustStockInMemory = (productId: string, delta: number) => {
+    setAllProducts((prev) =>
+      prev.map((p) => {
+        if (p._id !== productId) return p;
+        if (typeof p.currentStock !== 'number') return p; // skip if stock not tracked
+        const val = Math.max(0, p.currentStock + delta);
+        return { ...p, currentStock: val };
+      }),
+    );
+    setDisplayProducts((prev) =>
+      prev.map((p) => {
+        if (p._id !== productId) return p;
+        if (typeof p.currentStock !== 'number') return p;
+        const val = Math.max(0, p.currentStock + delta);
+        return { ...p, currentStock: val };
+      }),
+    );
+  };
+
+  // If product.currentStock is undefined -> return Infinity so availability checks pass.
+  // If numeric -> return that number.
+  const getAvailableStock = (productId: string) => {
+    const p = allProducts.find((x) => x._id === productId) || displayProducts.find((x) => x._id === productId);
+    if (!p) return 0;
+    return typeof p.currentStock === 'number' ? p.currentStock : Number.POSITIVE_INFINITY;
+  };
+
+  // addToCart: optimistic reserve only if product has numeric stock
   function addToCart(product: Product, qty = 1) {
-    if (product.currentStock !== undefined && product.currentStock <= 0) {
-      setMessage({ type: 'error', text: 'Product out of stock' });
+    const avail = getAvailableStock(product._id);
+    if (avail < qty) {
+      setMessage({ type: 'error', text: 'Not enough stock available' });
       return;
     }
+
     setCart((prev) => {
       const exists = prev.find((p) => p.productId === product._id);
       if (exists) {
-        return prev.map((p) =>
-          p.productId === product._id ? { ...p, quantity: p.quantity + qty } : p,
-        );
+        return prev.map((p) => (p.productId === product._id ? { ...p, quantity: p.quantity + qty } : p));
       }
       return [
         ...prev,
@@ -111,20 +167,54 @@ export default function POSListPage() {
         },
       ];
     });
+
+    // reserve stock in UI only if product has numeric stock
+    if (typeof product.currentStock === 'number') adjustStockInMemory(product._id, -qty);
+
     searchRef.current?.focus();
     setMessage(null);
   }
 
   function removeFromCart(productId: string) {
+    const item = cart.find((c) => c.productId === productId);
+    if (item) {
+      // release reserved qty only if product had numeric stock
+      const prod = allProducts.find((p) => p._id === productId);
+      if (prod && typeof prod.currentStock === 'number') adjustStockInMemory(productId, item.quantity);
+    }
     setCart((prev) => prev.filter((p) => p.productId !== productId));
   }
 
-  function changeQty(productId: string, qty: number) {
-    if (qty <= 0) {
+  function changeQty(productId: string, newQty: number) {
+    const existing = cart.find((c) => c.productId === productId);
+    if (!existing) return;
+    if (newQty <= 0) {
       removeFromCart(productId);
       return;
     }
-    setCart((prev) => prev.map((p) => (p.productId === productId ? { ...p, quantity: qty } : p)));
+
+    const currentReserved = existing.quantity;
+    const delta = newQty - currentReserved; // positive => reserve more
+
+    const prod = allProducts.find((p) => p._id === productId);
+
+    // if product has numeric stock, enforce availability and adjust reservation
+    if (prod && typeof prod.currentStock === 'number') {
+      if (delta > 0) {
+        if (prod.currentStock < delta) {
+          setMessage({ type: 'error', text: 'Not enough stock to increase quantity' });
+          return;
+        }
+        adjustStockInMemory(productId, -delta);
+      } else if (delta < 0) {
+        adjustStockInMemory(productId, -delta); // release
+      }
+    } else {
+      // product has undefined stock -> no reservation; allow any qty
+      // nothing to adjust in-memory
+    }
+
+    setCart((prev) => prev.map((p) => (p.productId === productId ? { ...p, quantity: newQty } : p)));
   }
 
   const subtotal = cart.reduce((s, it) => s + it.quantity * it.salePrice, 0);
@@ -146,16 +236,32 @@ export default function POSListPage() {
         discount: discountAmount,
         paymentMethod: 'cash',
       });
+      // success -> clear cart and re-fetch authoritative stock
       setCart([]);
       setDiscount('0');
       setMessage({ type: 'success', text: 'Sale completed' });
+      await fetchProducts();
     } catch (err) {
       console.error('checkout failed', err);
+      // On failure: restore any reserved stock back to UI for products that had numeric stock.
+      cart.forEach((it) => {
+        const prod = allProducts.find((p) => p._id === it.productId);
+        if (prod && typeof prod.currentStock === 'number') adjustStockInMemory(it.productId, it.quantity);
+      });
       setMessage({ type: 'error', text: 'Failed to complete sale' });
     } finally {
       setProcessing(false);
     }
   }
+
+  const clearAll = () => {
+    // restore reserved stock for numeric-stock products
+    cart.forEach((it) => {
+      const prod = allProducts.find((p) => p._id === it.productId);
+      if (prod && typeof prod.currentStock === 'number') adjustStockInMemory(it.productId, it.quantity);
+    });
+    setCart([]);
+  };
 
   return (
     <ProtectedLayout>
@@ -220,7 +326,10 @@ export default function POSListPage() {
                 <ul className="divide-y divide-slate-100 dark:divide-slate-700">
                   {displayProducts.map((p) => {
                     const inCartQty = cart.find((c) => c.productId === p._id)?.quantity || 0;
-                    const outOfStock = p.currentStock !== undefined && p.currentStock <= 0;
+
+                    // === outOfStock logic fixed: only true if currentStock is numeric AND <= 0
+                    const outOfStock = typeof p.currentStock === 'number' && p.currentStock <= 0;
+
                     return (
                       <li
                         key={p._id}
@@ -228,14 +337,12 @@ export default function POSListPage() {
                           inCartQty ? 'bg-blue-50 dark:bg-blue-900/10' : ''
                         }`}
                       >
-                        {/* SKU */}
                         <div className="w-24 flex-shrink-0">
                           <span className="inline-block px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-xs font-mono rounded">
                             {p.sku}
                           </span>
                         </div>
 
-                        {/* name */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-4">
                             <p className="font-medium text-slate-800 dark:text-white truncate">{p.name}</p>
@@ -254,13 +361,13 @@ export default function POSListPage() {
                             <span>{p.unit || 'pcs'}</span>
                             <span>•</span>
                             <span>
-                              {p.currentStock === undefined ? '—' : `${p.currentStock} in stock`}
+                              {/* if stock not tracked show dash, else show number */}
+                              {typeof p.currentStock === 'number' ? `${p.currentStock} in stock` : '—'}
                             </span>
                             {outOfStock && <span className="text-red-500 ml-2 font-medium">Out of stock</span>}
                           </div>
                         </div>
 
-                        {/* add button */}
                         <div className="flex-shrink-0">
                           <button
                             onClick={() => addToCart(p, 1)}
@@ -283,9 +390,8 @@ export default function POSListPage() {
             </div>
           </div>
 
-          {/* RIGHT: two stacked cards — Cart (top) and Order Summary (bottom) */}
+          {/* RIGHT: Cart + Order Summary */}
           <div className="flex flex-col gap-4">
-            {/* Shopping Cart card */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -299,7 +405,7 @@ export default function POSListPage() {
                 </div>
                 {cart.length > 0 && (
                   <button
-                    onClick={() => setCart([])}
+                    onClick={clearAll}
                     className="text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1 rounded-xl"
                   >
                     Clear All
@@ -362,7 +468,6 @@ export default function POSListPage() {
               </div>
             </div>
 
-            {/* Order Summary card with Discount field */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold text-slate-800 dark:text-white">Order Summary</h3>

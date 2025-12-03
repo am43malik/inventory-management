@@ -62,7 +62,7 @@ const emptyForm = {
   salePrice: "",
   unit: "pcs",
   minStock: "5",
-  initialStock: "",
+  quantity: "", // renamed from initialStock -> quantity
 }
 
 function Toast({ message, type, onClose }: { message: string; type: "success" | "error"; onClose: () => void }) {
@@ -187,7 +187,7 @@ export default function ProductsPage() {
         salePrice: product.salePrice.toString(),
         unit: product.unit || "pcs",
         minStock: product.minStock?.toString() || "5",
-        initialStock: "",
+        quantity: "", // do not show existing qty here; quantity is for initial add
       })
     } else {
       setEditingProduct(null)
@@ -230,8 +230,8 @@ export default function ProductsPage() {
       } else {
         const res = await api.createProduct(payload)
         const newId = res?.data?.data?._id
-        if (formData.initialStock && Number.parseInt(formData.initialStock) > 0 && newId) {
-          const qty = Number.parseInt(formData.initialStock)
+        if (formData.quantity && Number.parseInt(formData.quantity) > 0 && newId) {
+          const qty = Number.parseInt(formData.quantity)
           // attempt bulk endpoint if available
           if ((api as any).bulkStockIn) {
             await (api as any).bulkStockIn(newId, [{ quantity: qty, costPrice: payload.costPrice, batchNumber: `BATCH-${Date.now()}` }])
@@ -574,8 +574,9 @@ export default function ProductsPage() {
 
               {!editingProduct && (
                 <div className="space-y-2 pt-2 border-t">
-                  <Label htmlFor="initialStock">Initial Stock (optional)</Label>
-                  <Input id="initialStock" type="number" value={formData.initialStock} onChange={(e) => setFormData({ ...formData, initialStock: e.target.value })} placeholder="Leave empty to add later" />
+                  <Label htmlFor="quantity">Quantity (optional)</Label>
+                  <Input id="quantity" type="number" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} placeholder="Enter opening quantity (leave empty to add later)" />
+                  <p className="text-xs text-muted-foreground">If you enter a quantity here, it will be added as the initial stock for the product after creation.</p>
                 </div>
               )}
 

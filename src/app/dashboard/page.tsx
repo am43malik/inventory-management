@@ -266,7 +266,7 @@ export default function DashboardPage() {
                 />
                 <SummaryItem 
                   label="Total Profit" 
-                  value={`$${periodReport?.totalProfit?.toFixed(2)}`} 
+                  value={`₹${periodReport?.totalProfit?.toFixed(2)}`} 
                   trend={22.4}
                 />
                 <SummaryItem 
@@ -286,7 +286,7 @@ export default function DashboardPage() {
                 />
                 <SummaryItem 
                   label="Total Tax" 
-                  value={`$${periodReport?.totalTax?.toFixed(2)}`} 
+                  value={`₹${periodReport?.totalTax?.toFixed(2)}`} 
                   trend={9.6}
                 />
                 <SummaryItem 
