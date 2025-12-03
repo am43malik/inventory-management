@@ -74,6 +74,11 @@ export function Sidebar({ userRole = 'admin' }: SidebarProps) {
       icon: <FileText className="w-5 h-5" />,
     },
     {
+      label: 'Returns',
+      href: '/returns',
+      icon: <FileText className="w-5 h-5" />,
+    },
+    {
       label: 'Reports',
       href: '/reports',
       icon: <FileText className="w-5 h-5" />,

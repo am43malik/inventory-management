@@ -12,7 +12,7 @@ const adjustInventorySchema = z.object({
   batchNumber: z.string().default(() => uuidv4()),
   quantity: z.number().int().positive('Quantity must be greater than 0'),
   costPrice: z.number().min(0),
-  type: z.enum(['purchase', 'adjustment']).default('purchase'),
+  type: z.enum(['purchase', 'adjustment', 'return']).default('purchase'),
   reason: z.string().optional(),
   expiryDate: z.string().optional(),
 });

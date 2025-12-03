@@ -6,10 +6,12 @@
 import { ProtectedLayout } from '@/components/ProtectedLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api-client';
+import { api, getApiClient } from '@/lib/api-client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, Cell } from 'recharts';
 import { TrendingUp, Package, ShoppingCart, DollarSign, TrendingDown, Eye, ArrowUp, ArrowDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/Select';
+import { Input } from '@/components/ui/Input';
 
 interface DailyReport {
   totalRevenue: number;
@@ -23,13 +25,27 @@ export default function DashboardPage() {
   const [periodReport, setPeriodReport] = useState<any>(null);
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [range, setRange] = useState<'today' | 'week' | 'month' | 'year' | 'custom'>('today');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // map range to API params
+        // Build requests based on range
+        const periodParam =
+          range === 'today' ? '1'
+          : range === 'week' ? '7'
+          : range === 'month' ? '30'
+          : range === 'year' ? '365'
+          : '30';
+
         const [daily, period, top] = await Promise.all([
           api.getDailyReport(1),
-          api.getPeriodReport('30'),
+          range === 'custom' && startDate && endDate
+            ? getApiClient().get('/reports/period', { params: { startDate, endDate } })
+            : api.getPeriodReport(periodParam),
           api.getTopProducts(5),
         ]);
 
@@ -44,7 +60,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, []);
+  }, [range, startDate, endDate]);
 
   if (isLoading) {
     return (
@@ -91,8 +107,36 @@ export default function DashboardPage() {
                 Welcome back! Here's your business overview.
               </p>
             </div>
-            <div className="px-4 py-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-full border border-slate-200/50 dark:border-slate-700/50">
-              <span className="text-sm text-slate-600 dark:text-slate-400">Last 30 days</span>
+            <div className="flex flex-col gap-2">
+              <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-full border border-slate-200/50 dark:border-slate-700/50 px-2 py-1">
+                <Select value={range} onValueChange={(val: any) => setRange(val)}>
+                  <SelectTrigger className="w-56">
+                    <SelectValue placeholder="Select range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                    <SelectItem value="year">This Year</SelectItem>
+                    <SelectItem value="custom">Custom Range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {range === 'custom' && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e: any) => setStartDate(e.target.value)}
+                  />
+                  <span className="text-slate-600 dark:text-slate-400">to</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e: any) => setEndDate(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -100,29 +144,29 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
               icon={<DollarSign className="w-6 h-6" />}
-              label="Today's Revenue"
-              value={`₹${dailyReport?.totalRevenue?.toFixed(2) || '0.00'}`}
+              label="Revenue"
+              value={`₹${(periodReport?.totalRevenue ?? 0).toFixed(2)}`}
               trend={12}
               color="bg-gradient-to-br from-purple-500 to-purple-600"
             />
             <StatCard
               icon={<TrendingUp className="w-6 h-6" />}
-              label="Today's Profit"
-              value={`₹${dailyReport?.totalProfit?.toFixed(2) || '0.00'}`}
+              label="Profit"
+              value={`₹${(periodReport?.totalProfit ?? 0).toFixed(2)}`}
               trend={8}
               color="bg-gradient-to-br from-orange-500 to-orange-600"
             />
             <StatCard
               icon={<ShoppingCart className="w-6 h-6" />}
-              label="Today's Sales"
-              value={dailyReport?.totalSales || '0'}
+              label="Sales"
+              value={periodReport?.totalSales ?? '0'}
               trend={5}
               color="bg-gradient-to-br from-blue-500 to-blue-600"
             />
             <StatCard
               icon={<Package className="w-6 h-6" />}
               label="Units Sold"
-              value={dailyReport?.totalUnitsSold || '0'}
+              value={periodReport?.totalUnitsSold ?? dailyReport?.totalUnitsSold ?? '0'}
               trend={-2}
               color="bg-gradient-to-br from-cyan-500 to-cyan-600"
             />
@@ -137,7 +181,11 @@ export default function DashboardPage() {
                   <div className="p-2 bg-purple-500/20 rounded-lg">
                     <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  Revenue Trend (30 Days)
+                  {range === 'today' && 'Revenue Trend (Today)'}
+                  {range === 'week' && 'Revenue Trend (This Week)'}
+                  {range === 'month' && 'Revenue Trend (This Month)'}
+                  {range === 'year' && 'Revenue Trend (This Year)'}
+                  {range === 'custom' && 'Revenue Trend (Custom Range)'}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
@@ -249,7 +297,11 @@ export default function DashboardPage() {
                 <div className="p-2 bg-cyan-500/20 rounded-lg">
                   <Eye className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
                 </div>
-                30-Day Performance Summary
+                {range === 'today' && 'Performance Summary (Today)'}
+                {range === 'week' && 'Performance Summary (This Week)'}
+                {range === 'month' && 'Performance Summary (This Month)'}
+                {range === 'year' && 'Performance Summary (This Year)'}
+                {range === 'custom' && 'Performance Summary (Custom Range)'}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
