@@ -4,7 +4,7 @@ Complete API reference for the Retail Inventory Management System.
 
 ## Base URL
 ```
-http://localhost:3000/api
+NEXTAUTH_URL/api
 ```
 
 ## Authentication
