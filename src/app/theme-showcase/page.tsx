@@ -101,6 +101,7 @@ export default function ThemeShowcase() {
         </Card>
 
         {/* Badges Section */}
+        
         <Card>
           <CardHeader>
             <CardTitle>Badges</CardTitle>
